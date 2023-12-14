@@ -12,7 +12,7 @@ public class DynamicForest : IDisposable
     public event LabelAppliedEvent<DynamicTask>? OnLabelApplied;
     public event DependencyStatusUpdatedEvent<DynamicTask>? OnTreeNodeUpdate;
 
-    private readonly Dictionary<string, DynamicTree> trees = [];
+    private readonly Dictionary<string, DynamicTree> trees = [];        
 
     public ValueTask<DynamicTree> Create(string Name)
     {
