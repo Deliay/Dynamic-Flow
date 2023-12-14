@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AnalysisScript", "AnalysisS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicFlow", "DynamicFlow\DynamicFlow.csproj", "{081188D0-A8EC-488D-A322-D2B4D6CFAC92}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicFlow.Domain", "DynamicFlow.Domain\DynamicFlow.Domain.csproj", "{071331BB-4BA6-42E7-822C-D866FBE4423C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +53,14 @@ Global
 		{081188D0-A8EC-488D-A322-D2B4D6CFAC92}.Release|Any CPU.Build.0 = Release|Any CPU
 		{081188D0-A8EC-488D-A322-D2B4D6CFAC92}.Release|x64.ActiveCfg = Release|Any CPU
 		{081188D0-A8EC-488D-A322-D2B4D6CFAC92}.Release|x64.Build.0 = Release|Any CPU
+		{071331BB-4BA6-42E7-822C-D866FBE4423C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{071331BB-4BA6-42E7-822C-D866FBE4423C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{071331BB-4BA6-42E7-822C-D866FBE4423C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{071331BB-4BA6-42E7-822C-D866FBE4423C}.Debug|x64.Build.0 = Debug|Any CPU
+		{071331BB-4BA6-42E7-822C-D866FBE4423C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{071331BB-4BA6-42E7-822C-D866FBE4423C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{071331BB-4BA6-42E7-822C-D866FBE4423C}.Release|x64.ActiveCfg = Release|Any CPU
+		{071331BB-4BA6-42E7-822C-D866FBE4423C}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
