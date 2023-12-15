@@ -1,11 +1,17 @@
+using DynamicFlow.Application.Repository;
+using DynamicFlow.Infrastruction.Repository;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using MongoDB.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+builder.Services.AddDaprClient();
+builder.Services.AddSingleton<IMongoRespository, MongoDbClient>();
+builder.Services.AddSingleton<ILabeledTaskRepository, DaprLabeledTaskRespitory>();
 
 var app = builder.Build();
 

@@ -1,8 +1,8 @@
 ﻿namespace DynamicFlow.Domain.Labels
 {
-    public class Label(int id, LabelMetadata metadata, string value)
+    public class Label(string id, LabelMetadata metadata, string value)
     {
-        public int Id { get; set; } = id;
+        public string Id { get; set; } = id;
         public LabelMetadata Metadata { get; set; } = metadata;
         public string Value { get; set; } = value;
 
@@ -10,5 +10,6 @@
         {
             return $"{Metadata}:{Value}";
         }
+
     }
 }

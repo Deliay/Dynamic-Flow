@@ -5,11 +5,14 @@ using DynamicFlow.Domain.Labels;
 
 namespace DynamicFlow.Application.Abstraction;
 
-public class DynamicTree(string id, string name) : IDisposable
+public class DynamicTree(string id, string name) : IDisposable, ILabelContainer
 {
     public string Id => id;
 
     public string Name => name;
+    
+    private readonly Dictionary<string, HashSet<Label>> _labels;
+    private readonly Dictionary<string, Label> _labelMapping;
 
     private readonly Dictionary<string, DynamicTask> nodes = new()
     {
@@ -86,5 +89,45 @@ public class DynamicTree(string id, string name) : IDisposable
             node.OnLabelUpdated -= Task_OnLabelUpdated;
             node.OnLabelApplied -= Task_OnLabelApplied;
         }
+    }
+
+    public ValueTask<string?> Get(LabelMetadata metadata)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask<Label?> Find(LabelMetadata metadata)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask<IReadOnlySet<Label>?> FindAll(LabelMetadata metadata)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask<bool> Add(Label label)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask<bool> AddOrUpdate(Label label)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask<bool> Remove(Label label)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask<bool> RemoveAll(LabelMetadata metadata)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask<bool> Contains(LabelMetadata metadata)
+    {
+        throw new NotImplementedException();
     }
 }

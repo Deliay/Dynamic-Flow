@@ -14,5 +14,6 @@
         public readonly static LabelMetadata Overtime = new(Namespace, "overtime", 1);
         public readonly static LabelMetadata Group = new(Namespace, "group", 0);
         public readonly static LabelMetadata Empty = new(Namespace, "empty", 0);
+        public readonly static LabelMetadata Deleted = new(Namespace, "deleted", 1);
     }
 }

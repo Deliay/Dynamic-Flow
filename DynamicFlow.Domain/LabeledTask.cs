@@ -8,10 +8,8 @@ namespace DynamicFlow.Domain
     public abstract class LabeledTask<T> : DependencyTask<T>, ILabelContainer
         where T : LabeledTask<T>
     {
-        private int _labelIdx = 0;
-        public int GetLabelIndex() => _labelIdx++;
         private readonly Dictionary<string, HashSet<Label>> _labels;
-        private readonly Dictionary<int, Label> _labelMapping;
+        private readonly Dictionary<string, Label> _labelMapping;
 
         public event LabelUpdatedEvent<T>? OnLabelUpdated;
         public event LabelAppliedEvent<T>? OnLabelApplied;

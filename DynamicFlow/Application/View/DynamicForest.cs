@@ -1,7 +1,8 @@
-﻿using DynamicFlow.Application.Abstraction.Event;
+﻿using DynamicFlow.Application.Abstraction;
+using DynamicFlow.Application.Abstraction.Event;
 using DynamicFlow.Domain;
 
-namespace DynamicFlow.Application.Abstraction;
+namespace DynamicFlow.Application.View;
 
 public class DynamicForest : IDisposable
 {
