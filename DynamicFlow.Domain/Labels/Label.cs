@@ -12,8 +12,17 @@
 
         public override string ToString()
         {
-            return $"{Metadata}:{Value}";
+            return $"{Metadata}:{Id}:{Value}";
         }
 
+        public override bool Equals(object? obj)
+        {
+            return obj?.ToString() == ToString();
+        }
+
+        public override int GetHashCode()
+        {
+            return ToString().GetHashCode();
+        }
     }
 }

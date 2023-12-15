@@ -16,6 +16,6 @@
 
         ValueTask<bool> RemoveAll(LabelMetadata metadata);
 
-        ValueTask<bool> Contains(LabelMetadata metadata);
+        ValueTask<int> Count(LabelMetadata metadata);
     }
 }

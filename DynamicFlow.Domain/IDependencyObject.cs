@@ -8,6 +8,6 @@ namespace DynamicFlow.Domain
 
         public IResolvePolicy<T> GetResolvePolicy();
 
-        public abstract event DependencyStatusUpdatedEvent<T>? OnDependencyChanged;
+        public abstract event TaskStatusUpdatedEvent<T>? OnDependencyChanged;
     }
 }

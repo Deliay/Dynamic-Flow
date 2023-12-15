@@ -1,28 +1,31 @@
-﻿using DynamicFlow.Application.Abstraction;
+﻿using Dapr.Client;
+using DynamicFlow.Application.Abstraction;
 using DynamicFlow.Application.Abstraction.Event;
+using DynamicFlow.Application.Repository;
 using DynamicFlow.Domain;
 using DynamicFlow.Domain.Labels;
 using DynamicFlow.Domain.Labels.DefaultMetadata;
+using DynamicFlow.Infrastruction.Repository;
+using DynamicFlow.Infrastruction.Util;
+using MongoDB.Driver;
 
 namespace DynamicFlow.Application.View;
 
-public class DynamicForest : IDisposable
+public class DynamicForest(DaprClient daprClient, DaprLabeledTreeRepository treeRepository, DaprLabeledTaskRespitory taskRespitory) : IDisposable
 {
+    private IMongoCollection<LabeledTaskObject> Tasks => taskRespitory.Collection;
+
     public event TreeCreatedEvent? OnTreeCreated;
     public event TreeTaskAddedEvent? OnTreeTaskAdded;
     public event TreeTaskDependencyUpdated? OnTaskDependencyUpdated;
     public event LabelUpdatedEvent<FlowTask>? OnLabelUpdated;
     public event LabelAppliedEvent<FlowTask>? OnLabelApplied;
-    public event DependencyStatusUpdatedEvent<FlowTask>? OnTreeNodeUpdate;
+    public event TaskStatusUpdatedEvent<FlowTask>? OnTreeNodeUpdate;
 
     private readonly Dictionary<string, FlowTree> trees = [];        
 
-    public ValueTask<FlowTree> Create(string Name)
+    private void AttachEvent(FlowTree tree)
     {
-        var tree = new DynamicTree(Guid.NewGuid().ToString(), Name);
-        tree.Add(new(DynFlow.Name))
-        trees.Add(tree.Id, tree);
-
 
         tree.OnTaskDependencyUpdated += Tree_OnTaskDependencyUpdated;
         tree.OnTaskAdded += Tree_OnTaskAdded;
@@ -30,33 +33,75 @@ public class DynamicForest : IDisposable
         tree.OnLabelUpdated += Tree_OnLabelUpdated;
         tree.OnNodeUpdate += Tree_OnNodeUpdate;
 
-        OnTreeCreated?.Invoke(tree);
-        return ValueTask.FromResult(tree);
+        // WIP: dependency relationship update
     }
 
-    private ValueTask Tree_OnNodeUpdate(FlowTask dependency, TaskState prev, TaskState next)
+    public async ValueTask<FlowTree> CreateOrGet(string Name)
     {
-        return OnTreeNodeUpdate?.Invoke(dependency, prev, next) ?? ValueTask.CompletedTask;
+        var tree = new DynamicTree(daprClient, treeRepository.Collection, Guid.NewGuid().ToString());
+        await tree.Add(new(DynFlow.Name, Name));
+        trees.Add(tree.Id, tree);
+
+        AttachEvent(tree);
+
+        await (OnTreeCreated?.Invoke(tree) ?? ValueTask.CompletedTask);
+        return tree;
     }
 
-    private ValueTask Tree_OnLabelUpdated(FlowTask task, Label oldLabel, Label newLabel)
+    private async ValueTask Tree_OnNodeUpdate(FlowTask task, TaskState prev, TaskState next)
     {
-        return OnLabelUpdated?.Invoke(task, oldLabel, newLabel) ?? ValueTask;
+        await daprClient.BeginDaprLock(nameof(DynamicTask), task.Id, async () => 
+        {
+            var currenState = await Tasks.SelectId(task.Id).Project(task => task.State).SingleAsync();
+            if (currenState != prev) throw new InvalidOperationException($"task {task.Id} state not match, prev={prev}, current={currenState}");
+
+            var res = await Tasks.UpdateOneAsync(Tasks.Filter(task.Id), Tasks.Update().Set(task => task.State, next));
+
+            if (!res.IsModifiedCountAvailable || res.ModifiedCount == 0) throw new InvalidOperationException("No task updated");
+        });
+        await (OnTreeNodeUpdate?.Invoke(task, prev, next) ?? ValueTask.CompletedTask);
     }
 
-    private ValueTask Tree_OnLabelApplied(FlowTask task, Label label)
+    private async ValueTask Tree_OnLabelUpdated(FlowTask task, Label oldLabel, Label newLabel)
     {
-        return OnLabelApplied?.Invoke(task, label) ?? ValueTask.CompletedTask;
+        if (oldLabel.Id != newLabel.Id) throw new InvalidOperationException("New label Id not equals to oldLabel");
+
+        await daprClient.BeginDaprLock(nameof(DynamicTask), task.Id, async () => 
+        {
+            await Tasks.UpdateOneAsync(Tasks.Filter(task.Id), Tasks.Update().PullFilter(task => task.Labels, l => l.Id == oldLabel.Id));
+            await Tasks.UpdateOneAsync(Tasks.Filter(task.Id), Tasks.Update().Push(task => task.Labels, newLabel));
+        });
+        await (OnLabelUpdated?.Invoke(task, oldLabel, newLabel) ?? ValueTask.CompletedTask);
     }
 
-    private ValueTask Tree_OnTaskAdded(FlowTask node)
+    private async ValueTask Tree_OnLabelApplied(FlowTask task, Label label)
     {
-        return OnTreeTaskAdded?.Invoke(node) ?? ValueTask.CompletedTask;
+        await daprClient.BeginDaprLock(nameof(DynamicTask), task.Id, async () => 
+        {
+            var exist = await Tasks.Find(Tasks.Filter().ElemMatch(task => task.Labels, l => l.Id == label.Id)).AnyAsync();
+            if (exist) throw new InvalidOperationException($"Label {label.Id} already exists");
+
+            await Tasks.UpdateOneAsync(Tasks.Filter(task.Id), Tasks.Update().Push(task => task.Labels, label));
+        });
+        await (OnLabelApplied?.Invoke(task, label) ?? ValueTask.CompletedTask);
     }
 
-    private ValueTask Tree_OnTaskDependencyUpdated(FlowTask beenResolvedTask, FlowTask resolverTask)
+    private async ValueTask Tree_OnTaskAdded(FlowTask flowTask)
     {
-        return OnTaskDependencyUpdated?.Invoke(beenResolvedTask, resolverTask) ?? ValueTask.CompletedTask;
+        if (flowTask is not DynamicTask task) throw new InvalidOperationException("Non dynamic task instance detected");
+        await daprClient.BeginDaprLock(nameof(DynamicTask), flowTask.Id, async () =>
+        {
+            var exist = await Tasks.Find(Tasks.Filter(flowTask.Id)).AnyAsync();
+            if (exist) throw new InvalidOperationException($"Task {flowTask.Id} already exists");
+
+            await Tasks.InsertOneAsync(LabeledTaskObject.From(task));
+        });
+        await (OnTreeTaskAdded?.Invoke(flowTask) ?? ValueTask.CompletedTask);
+    }
+
+    private async ValueTask Tree_OnTaskDependencyUpdated(FlowTask beenResolvedTask, FlowTask resolverTask)
+    {
+        await (OnTaskDependencyUpdated?.Invoke(beenResolvedTask, resolverTask) ?? ValueTask.CompletedTask);
     }
 
     public void Dispose()

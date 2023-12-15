@@ -1,7 +1,5 @@
 ﻿using DynamicFlow.Domain.Labels;
 using DynamicFlow.Domain.Labels.DefaultMetadata;
-using DynamicFlow.Domain.ResolvePolicy;
-using System.Runtime.InteropServices;
 
 namespace DynamicFlow.Domain
 {
@@ -74,23 +72,23 @@ namespace DynamicFlow.Domain
         }
 
 
-        public ValueTask<bool> Add(Label label)
+        public async ValueTask<bool> Add(Label label)
         {
             if (!_labels.ContainsKey(label.Metadata.ToString()))
             {
                 _labels.Add(label.Metadata.ToString(), [label]);
                 _labelMapping.Add(label.Id, label);
-                OnLabelApplied?.Invoke((T)this, label);
-                return ValueTask.FromResult(true);
+                await (OnLabelApplied?.Invoke((T)this, label) ?? ValueTask.CompletedTask);
+                return true;
             }
             var list = _labels[label.Metadata.ToString()];
             if (label.Metadata.AllowCount == 0 || list.Count < label.Metadata.AllowCount)
             {
                 _labelMapping.Add(label.Id, label);
-                OnLabelApplied?.Invoke((T)this, label);
-                return ValueTask.FromResult(list.Add(label));
+                await (OnLabelApplied?.Invoke((T)this, label) ?? ValueTask.CompletedTask);
+                return list.Add(label);
             }
-            return ValueTask.FromResult(false);
+            return false;
         }
 
         public ValueTask<Label?> Find(LabelMetadata metadata)
@@ -109,13 +107,11 @@ namespace DynamicFlow.Domain
             return ValueTask.FromResult(labelValue);
         }
 
-        public ValueTask Update(Label label)
+        public async ValueTask Update(Label label)
         {
-            OnLabelUpdated?.Invoke((T)this, label, _labelMapping[label.Id]);
+            await (OnLabelUpdated?.Invoke((T)this, label, _labelMapping[label.Id]) ?? ValueTask.CompletedTask);
             _labelMapping[label.Id].Metadata = label.Metadata;
             _labelMapping[label.Id].Value = label.Value;
-
-            return ValueTask.CompletedTask;
         }
 
         public ValueTask<bool> Remove(Label label)
@@ -134,9 +130,9 @@ namespace DynamicFlow.Domain
             return ValueTask.FromResult(_labels.Remove(label.ToString()));
         }
 
-        public ValueTask<bool> Contains(LabelMetadata metadata)
+        public async ValueTask<bool> Contains(LabelMetadata metadata)
         {
-            return ValueTask.FromResult(_labels.ContainsKey(metadata.ToString()));
+            return await Count(metadata) > 0;
         }
 
         public async ValueTask<string?> Get(LabelMetadata metadata)
@@ -157,6 +153,12 @@ namespace DynamicFlow.Domain
             }
 
             return await Add(label);
+        }
+
+        public ValueTask<int> Count(LabelMetadata metadata)
+        {
+            if (_labels.TryGetValue(metadata.ToString(), out var labels)) return new ValueTask<int>(labels.Count);
+            else return new ValueTask<int>(0);
         }
     }
 

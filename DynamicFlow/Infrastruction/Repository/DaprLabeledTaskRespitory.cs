@@ -10,6 +10,7 @@ namespace DynamicFlow.Infrastruction.Repository;
 
 public class DaprLabeledTaskRespitory(IMongoRespository Db) : ILabeledTaskRepository
 {
+    public IMongoCollection<LabeledTaskObject> Collection => Db.Tasks;
     private const string DaprStore = "flow_task_" + nameof(DaprLabeledTaskRespitory);
 
     public async ValueTask Save(LabeledTaskObject task, CancellationToken cancellationToken)

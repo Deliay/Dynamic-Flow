@@ -10,7 +10,12 @@ namespace DynamicFlow.Domain
 
         public TaskState CurrentState { get; set; } = TaskState.Locked;
 
-        public event DependencyStatusUpdatedEvent<T>? OnDependencyChanged;
+        public event TaskStatusUpdatedEvent<T>? OnDependencyChanged;
+        public event TaskReferenceRelationUpdatedEvent<T>? OnDependencyAdded;
+        public event TaskReferenceRelationUpdatedEvent<T>? OnDependencyRemoved;
+
+        public event TaskReferenceRelationUpdatedEvent<T>? OnReferenceAdded;
+        public event TaskReferenceRelationUpdatedEvent<T>? OnReferenceRemoved;
 
         private async ValueTask RaiseMulitInvocationEvent(TaskState prev, TaskState next)
         {
@@ -19,8 +24,21 @@ namespace DynamicFlow.Domain
                 var invocations = OnDependencyChanged.GetInvocationList();
                 foreach (var invocation in invocations)
                 {
-                    var method = (DependencyStatusUpdatedEvent<T>)invocation;
+                    var method = (TaskStatusUpdatedEvent<T>)invocation;
                     await method((T)this, prev, next);
+                }
+            }
+        }
+
+        private async ValueTask RaiseMulitInvocationEvent(TaskReferenceRelationUpdatedEvent<T>? instance, T target)
+        {
+            if (instance is not null)
+            {
+                var invocations = instance.GetInvocationList();
+                foreach (var invocation in invocations)
+                {
+                    var method = (TaskReferenceRelationUpdatedEvent<T>)invocation;
+                    await method((T)this, target);
                 }
             }
         }
@@ -141,11 +159,14 @@ namespace DynamicFlow.Domain
         public virtual async ValueTask Reference(T task)
         {
             References.Add(task);
+            await RaiseMulitInvocationEvent(OnReferenceAdded, task);
             await task.DependencyUpdated((T)this, CurrentState, CurrentState);
+            
         }
         public virtual async ValueTask DisReference(T task)
         {
             References.Remove(task);
+            await RaiseMulitInvocationEvent(OnReferenceRemoved, task);
             await task.DependencyUpdated((T)this, CurrentState, CurrentState);
         }
 
@@ -154,6 +175,7 @@ namespace DynamicFlow.Domain
             DependencyTask<T>.TryResolve(task, [(T)this]);
 
             Dependencies.Add(task);
+            await RaiseMulitInvocationEvent(OnDependencyAdded, task);
             await task.Reference((T)this);
             task.OnDependencyChanged += DependencyUpdated;
         }
@@ -165,6 +187,7 @@ namespace DynamicFlow.Domain
                 return;
             }
             Dependencies.Remove(task);
+            await RaiseMulitInvocationEvent(OnDependencyRemoved, task);
             await DisReference(task);
             task.OnDependencyChanged -= DependencyUpdated;
         }
@@ -175,6 +198,11 @@ namespace DynamicFlow.Domain
             foreach (var dependency in Dependencies)
             {
                 dependency.OnDependencyChanged -= DependencyUpdated;
+            }
+            foreach (var reference in References)
+            {
+                OnDependencyChanged -= reference.OnDependencyChanged;
+                reference.Dependencies.Remove((T)this);
             }
         }
 

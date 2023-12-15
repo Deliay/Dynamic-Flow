@@ -9,57 +9,57 @@ public abstract class FlowTree(string treeId) : IDisposable, ILabelContainer
 {
     public string Id { get; } = treeId;
 
-    protected readonly Dictionary<string, HashSet<Label>> Labels = [];
-    protected readonly Dictionary<string, Label> LabelMapping = [];
-
-    private readonly Dictionary<string, FlowTask> nodes = new()
-    {
-        { treeId, new FlowTask(treeId, DefaultResolvePolicies.Optional) },
-    };
-
-    private FlowTask Root => nodes[Id];
+    protected abstract Dictionary<string, FlowTask> Nodes { get; }
 
     public event TreeTaskAddedEvent? OnTaskAdded;
     public event TreeTaskDependencyUpdated? OnTaskDependencyUpdated;
     public event LabelUpdatedEvent<FlowTask>? OnLabelUpdated;
     public event LabelAppliedEvent<FlowTask>? OnLabelApplied;
-    public event DependencyStatusUpdatedEvent<FlowTask>? OnNodeUpdate;
+    public event TaskStatusUpdatedEvent<FlowTask>? OnNodeUpdate;
+    public event TaskReferenceRelationUpdatedEvent<FlowTask>? OnTaskReferenceAdded;
+    public event TaskReferenceRelationUpdatedEvent<FlowTask>? OnTaskReferenceRemoved;
+    public event TaskReferenceRelationUpdatedEvent<FlowTask>? OnTaskDependencyAdded;
+    public event TaskReferenceRelationUpdatedEvent<FlowTask>? OnTaskDependencyRemoved;
 
-    private async ValueTask<FlowTask> _CreateTask(string id, DefaultResolvePolicies resolvePolicy)
+    private void AttachEvent(FlowTask task)
     {
-        if (nodes.ContainsKey(id)) {
+        task.OnDependencyChanged += Task_OnTaskStatusChanged;
+        task.OnLabelApplied += Task_OnLabelApplied;
+        task.OnLabelUpdated += Task_OnLabelUpdated;
+        task.OnDependencyAdded += OnTaskDependencyAdded;
+        task.OnDependencyRemoved += OnTaskDependencyRemoved;
+        task.OnReferenceAdded += OnTaskReferenceAdded;
+        task.OnReferenceRemoved += OnTaskReferenceRemoved;
+    }
+
+    public virtual async ValueTask<FlowTask> CreateTask(string id, DefaultResolvePolicies resolvePolicy)
+    {
+        if (Nodes.ContainsKey(id)) {
             throw new InvalidOperationException($"'{id}' was duplicated.");
         }
 
-        nodes.Add(id, new(id, resolvePolicy));
-        var task = nodes[id];
+        Nodes.Add(id, new(id, resolvePolicy));
+        var task = Nodes[id];
 
-        task.OnDependencyChanged += Task_OnDependencyChanged;
-        task.OnLabelApplied += Task_OnLabelApplied;
-        task.OnLabelUpdated += Task_OnLabelUpdated;
+        AttachEvent(task);
         
         await (OnTaskAdded?.Invoke(task) ?? ValueTask.CompletedTask);
-
         return task;
     }
 
-    public ValueTask<FlowTask> CreateTask(string id, DefaultResolvePolicies resolvePolicy)
+    public async ValueTask<FlowTask> CreateTask(string resolverId, string id, DefaultResolvePolicies resolvePolicy)
     {
-        return CreateTask(Root, id, resolvePolicy);
-    }
-
-    public ValueTask<FlowTask> CreateTask(string resolver, string id, DefaultResolvePolicies resolvePolicy)
-    {
-        return CreateTask(nodes[resolver], id, resolvePolicy);
-    }
-
-    public async ValueTask<FlowTask> CreateTask(FlowTask resolver, string id, DefaultResolvePolicies resolvePolicy)
-    {
-        var task = await _CreateTask(id, resolvePolicy);
+        if (!Nodes.TryGetValue(resolverId, out FlowTask? resolver)) throw new InvalidOperationException($"Task {resolverId} not loaded to this tree");
+        var task = await CreateTask(id, resolvePolicy);
 
         await task.ResolveBy(resolver);
 
         return task;
+    }
+
+    public ValueTask<FlowTask> CreateTask(FlowTask resolver, string id, DefaultResolvePolicies resolvePolicy)
+    {
+        return CreateTask(resolver.Id, id, resolvePolicy);
     }
 
     private ValueTask Task_OnLabelUpdated(FlowTask task, Label oldLabel, Label newLabel)
@@ -72,18 +72,18 @@ public abstract class FlowTree(string treeId) : IDisposable, ILabelContainer
         return OnLabelApplied?.Invoke(task, label) ?? ValueTask.CompletedTask;
     }
 
-    private ValueTask Task_OnDependencyChanged(FlowTask dependency, TaskState prev, TaskState next)
+    private ValueTask Task_OnTaskStatusChanged(FlowTask task, TaskState prev, TaskState next)
     {
-        var res = OnNodeUpdate?.Invoke(dependency, prev, next);
+        var res = OnNodeUpdate?.Invoke(task, prev, next);
         return res ?? ValueTask.CompletedTask;
     }
 
     public void Dispose()
     {
         GC.SuppressFinalize(this);
-        foreach (var node in nodes.Values)
+        foreach (var node in Nodes.Values)
         {
-            node.OnDependencyChanged -= Task_OnDependencyChanged;
+            node.OnDependencyChanged -= Task_OnTaskStatusChanged;
             node.OnLabelUpdated -= Task_OnLabelUpdated;
             node.OnLabelApplied -= Task_OnLabelApplied;
         }
@@ -96,5 +96,5 @@ public abstract class FlowTree(string treeId) : IDisposable, ILabelContainer
     public abstract ValueTask<bool> AddOrUpdate(Label label);
     public abstract ValueTask<bool> Remove(Label label);
     public abstract ValueTask<bool> RemoveAll(LabelMetadata metadata);
-    public abstract ValueTask<bool> Contains(LabelMetadata metadata);
+    public abstract ValueTask<int> Count(LabelMetadata metadata);
 }

@@ -12,6 +12,8 @@ namespace DynamicFlow.Infrastruction.Repository;
 
 public class DaprLabeledTreeRepository(IMongoRespository Db) : ITreeRespository
 {
+    public IMongoCollection<LabeledTreeObject> Collection => Db.Trees;
+
     private const string TreeDaprStore = "flow_tree_" + nameof(DaprLabeledTaskRespitory);
 
     public IAsyncEnumerable<LabeledTreeObject> GetAllTree(CancellationToken cancellationToken)
