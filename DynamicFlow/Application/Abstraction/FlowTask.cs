@@ -4,7 +4,7 @@ using DynamicFlow.Domain.ResolvePolicy;
 
 namespace DynamicFlow.Application.Abstraction;
 
-public class DynamicTask(string id, DefaultResolvePolicies resolvePolicy) : LabeledTask<DynamicTask>
+public class FlowTask(string id, DefaultResolvePolicies resolvePolicy) : LabeledTask<FlowTask>
 {
     public string Id => id;
 
@@ -22,9 +22,9 @@ public class DynamicTask(string id, DefaultResolvePolicies resolvePolicy) : Labe
 
     public DefaultResolvePolicies ResolvePolicy => resolvePolicy;
 
-    public override IResolvePolicy<DynamicTask> GetResolvePolicy()
+    public override IResolvePolicy<FlowTask> GetResolvePolicy()
     {
-        return DefaultResolvePolicyFactory.OfPolicy<DynamicTask>(ResolvePolicy);
+        return DefaultResolvePolicyFactory.OfPolicy<FlowTask>(ResolvePolicy);
     }
 
     public async ValueTask<DueTo> GetDueTo()

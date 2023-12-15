@@ -14,7 +14,7 @@ public class DaprLabeledTaskRespitory(IMongoRespository Db) : ILabeledTaskReposi
 
     public async ValueTask Save(LabeledTaskObject task, CancellationToken cancellationToken)
     {
-        if (await Db.Tasks._(where => where.Eq(task => task.Id, task.Id)).AnyAsync(cancellationToken))
+        if (await Db.Tasks.Select(where => where.Eq(task => task.Id, task.Id)).AnyAsync(cancellationToken))
             throw new InvalidDataException("Task.Id duplicated");
 
         await Db.Tasks.InsertOneAsync(task, cancellationToken: cancellationToken);
@@ -22,13 +22,18 @@ public class DaprLabeledTaskRespitory(IMongoRespository Db) : ILabeledTaskReposi
 
     public async ValueTask<LabeledTaskObject> Get(string id, CancellationToken cancellationToken)
     {
-        return await Db.Tasks._(where => where.Eq(task => task.Id, id)).FirstOrDefaultAsync(cancellationToken);
+        return await Db.Tasks.Select(where => where.Eq(task => task.Id, id)).FirstOrDefaultAsync(cancellationToken);
     }
 
     public IAsyncEnumerable<LabeledTaskObject> Search(LabelMetadata metadata, List<string> values, CancellationToken cancellationToken)
     {
-        var querys = values.Select(value => Builders<LabeledTaskObject>.Filter
-            .ElemMatch(task => task.Labels, label => label.Metadata == metadata && label.Value == value));
+        return Search(new(){{ metadata, values }}, cancellationToken);
+    }
+
+    public IAsyncEnumerable<LabeledTaskObject> Search(Dictionary<LabelMetadata, List<string>> conditions, CancellationToken cancellationToken)
+    {
+        var querys = conditions.SelectMany(pair => pair.Value.Select(value => Builders<LabeledTaskObject>.Filter
+            .ElemMatch(task => task.Labels, label => label.Metadata == pair.Key && label.Value == value)));
 
         var query = Builders<LabeledTaskObject>.Filter.Or(querys);
 

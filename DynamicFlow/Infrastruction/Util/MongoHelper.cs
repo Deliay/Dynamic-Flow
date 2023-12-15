@@ -26,7 +26,7 @@ public static class MongoHelper
         }
     }
 
-    public static IFindFluent<T, T> _<T>(this IMongoCollection<T> collection, Func<FilterDefinitionBuilder<T>, FilterDefinition<T>> builder)
+    public static IFindFluent<T, T> Select<T>(this IMongoCollection<T> collection, Func<FilterDefinitionBuilder<T>, FilterDefinition<T>> builder)
     {
         return collection.Find(builder(Builders<T>.Filter));
     }

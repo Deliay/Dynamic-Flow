@@ -1,6 +1,8 @@
 ﻿using DynamicFlow.Application.Abstraction;
 using DynamicFlow.Application.Abstraction.Event;
 using DynamicFlow.Domain;
+using DynamicFlow.Domain.Labels;
+using DynamicFlow.Domain.Labels.DefaultMetadata;
 
 namespace DynamicFlow.Application.View;
 
@@ -9,15 +11,16 @@ public class DynamicForest : IDisposable
     public event TreeCreatedEvent? OnTreeCreated;
     public event TreeTaskAddedEvent? OnTreeTaskAdded;
     public event TreeTaskDependencyUpdated? OnTaskDependencyUpdated;
-    public event LabelUpdatedEvent<DynamicTask>? OnLabelUpdated;
-    public event LabelAppliedEvent<DynamicTask>? OnLabelApplied;
-    public event DependencyStatusUpdatedEvent<DynamicTask>? OnTreeNodeUpdate;
+    public event LabelUpdatedEvent<FlowTask>? OnLabelUpdated;
+    public event LabelAppliedEvent<FlowTask>? OnLabelApplied;
+    public event DependencyStatusUpdatedEvent<FlowTask>? OnTreeNodeUpdate;
 
-    private readonly Dictionary<string, DynamicTree> trees = [];        
+    private readonly Dictionary<string, FlowTree> trees = [];        
 
-    public ValueTask<DynamicTree> Create(string Name)
+    public ValueTask<FlowTree> Create(string Name)
     {
         var tree = new DynamicTree(Guid.NewGuid().ToString(), Name);
+        tree.Add(new(DynFlow.Name))
         trees.Add(tree.Id, tree);
 
 
@@ -31,29 +34,29 @@ public class DynamicForest : IDisposable
         return ValueTask.FromResult(tree);
     }
 
-    private ValueTask Tree_OnNodeUpdate(DynamicTask dependency, TaskState prev, TaskState next)
+    private ValueTask Tree_OnNodeUpdate(FlowTask dependency, TaskState prev, TaskState next)
     {
         return OnTreeNodeUpdate?.Invoke(dependency, prev, next) ?? ValueTask.CompletedTask;
     }
 
-    private void Tree_OnLabelUpdated(DynamicTask task, Domain.Labels.Label oldLabel, Domain.Labels.Label newLabel)
+    private ValueTask Tree_OnLabelUpdated(FlowTask task, Label oldLabel, Label newLabel)
     {
-        OnLabelUpdated?.Invoke(task, oldLabel, newLabel);
+        return OnLabelUpdated?.Invoke(task, oldLabel, newLabel) ?? ValueTask;
     }
 
-    private void Tree_OnLabelApplied(DynamicTask task, Domain.Labels.Label label)
+    private ValueTask Tree_OnLabelApplied(FlowTask task, Label label)
     {
-        OnLabelApplied?.Invoke(task, label);
+        return OnLabelApplied?.Invoke(task, label) ?? ValueTask.CompletedTask;
     }
 
-    private void Tree_OnTaskAdded(DynamicTask node)
+    private ValueTask Tree_OnTaskAdded(FlowTask node)
     {
-        OnTreeTaskAdded?.Invoke(node);
+        return OnTreeTaskAdded?.Invoke(node) ?? ValueTask.CompletedTask;
     }
 
-    private void Tree_OnTaskDependencyUpdated(DynamicTask beenResolvedTask, DynamicTask resolverTask)
+    private ValueTask Tree_OnTaskDependencyUpdated(FlowTask beenResolvedTask, FlowTask resolverTask)
     {
-        OnTaskDependencyUpdated?.Invoke(beenResolvedTask, resolverTask);
+        return OnTaskDependencyUpdated?.Invoke(beenResolvedTask, resolverTask) ?? ValueTask.CompletedTask;
     }
 
     public void Dispose()

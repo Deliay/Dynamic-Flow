@@ -16,14 +16,14 @@ public class DaprLabeledTreeRepository(IMongoRespository Db) : ITreeRespository
 
     public IAsyncEnumerable<LabeledTreeObject> GetAllTree(CancellationToken cancellationToken)
     {
-        return Db.Trees._(where => where.Empty).ToAsyncEnumerable(cancellationToken);
+        return Db.Trees.Select(where => where.Empty).ToAsyncEnumerable(cancellationToken);
     }
 
     public async ValueTask Save(LabeledTreeObject tree, CancellationToken cancellationToken)
     {
-        if (await Db.Trees._(where => where.Eq(tree => tree.Id, tree.Id)).AnyAsync(cancellationToken))
+        if (await Db.Trees.Select(where => where.Eq(tree => tree.Id, tree.Id)).AnyAsync(cancellationToken))
             throw new InvalidDataException("Tree.Id duplicated");
-            
+
         await Db.Trees.InsertOneAsync(tree, cancellationToken: cancellationToken);
     }
 }

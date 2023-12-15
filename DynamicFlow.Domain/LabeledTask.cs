@@ -160,6 +160,6 @@ namespace DynamicFlow.Domain
         }
     }
 
-    public delegate void LabelUpdatedEvent<T>(T task, Label oldLabel, Label newLabel);
-    public delegate void LabelAppliedEvent<T>(T task, Label label);
+    public delegate ValueTask LabelUpdatedEvent<T>(T task, Label oldLabel, Label newLabel);
+    public delegate ValueTask LabelAppliedEvent<T>(T task, Label label);
 }
