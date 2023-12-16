@@ -3,12 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.32112.339
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PigeonStagingDepolyment", "PigeonStagingDepolyment\PigeonStagingDepolyment.csproj", "{0845A6A1-3E77-4C7C-9E2F-3147FE784C40}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Playground", "Playground\Playground.csproj", "{5589C9D3-9930-4413-8D58-4A39494300A0}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AnalysisScript", "AnalysisScript\AnalysisScript.csproj", "{E06F65FC-E18E-4CC8-8B12-A05ECCCCAD57}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicFlow", "DynamicFlow\DynamicFlow.csproj", "{081188D0-A8EC-488D-A322-D2B4D6CFAC92}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicFlow.Domain", "DynamicFlow.Domain\DynamicFlow.Domain.csproj", "{071331BB-4BA6-42E7-822C-D866FBE4423C}"
